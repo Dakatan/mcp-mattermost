@@ -12,8 +12,7 @@ import { MattermostConfig } from '../config/config';
  */
 export class MattermostClient {
   private readonly client: Client4;
-  private readonly teamName: string;
-  private teamId: string | undefined;
+  private teamId: string;
 
   /**
    * Create a new Mattermost client
@@ -23,15 +22,14 @@ export class MattermostClient {
     this.client = new Client4();
     this.client.setUrl(config.url);
     this.client.setToken(config.token);
-    this.teamName = config.teamName;
+    this.teamId = config.teamId;
   }
 
   async init() {
-    const team = await this.client.getTeamByName(this.teamName);
+    const team = await this.client.getTeam(this.teamId);
     if (!team) {
-      throw new Error(`Team with name '${this.teamName}' not found`);
+      throw new Error(`Team with ID '${this.teamId}' not found or not accessible`);
     }
-    this.teamId = team.id;
   }
 
   /**
@@ -288,3 +286,4 @@ export class MattermostClient {
     };
   }
 }
+
