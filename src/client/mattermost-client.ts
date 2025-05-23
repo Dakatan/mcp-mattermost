@@ -12,8 +12,8 @@ import { MattermostConfig } from '../config/config';
  */
 export class MattermostClient {
   private readonly client: Client4;
-  private readonly teamName: string;
-  private teamId: string | undefined;
+  private teamId: string = '';
+  private readonly config: MattermostConfig;
 
   /**
    * Create a new Mattermost client
@@ -23,15 +23,31 @@ export class MattermostClient {
     this.client = new Client4();
     this.client.setUrl(config.url);
     this.client.setToken(config.token);
-    this.teamName = config.teamName;
+    this.config = config;
+
+    // If teamId is provided directly, use it
+    if (config.teamId) {
+      this.teamId = config.teamId;
+    }
   }
 
   async init() {
-    const team = await this.client.getTeamByName(this.teamName);
-    if (!team) {
-      throw new Error(`Team with name '${this.teamName}' not found`);
+    // If teamId is not set but teamName is provided, resolve team name to team ID
+    if (!this.teamId && this.config.teamName) {
+      const team = await this.client.getTeamByName(this.config.teamName);
+      if (!team) {
+        throw new Error(`Team with name '${this.config.teamName}' not found or not accessible`);
+      }
+      this.teamId = team.id;
+    } else if (this.teamId) {
+      // If teamId is provided, validate it exists
+      const team = await this.client.getTeam(this.teamId);
+      if (!team) {
+        throw new Error(`Team with ID '${this.teamId}' not found or not accessible`);
+      }
+    } else {
+      throw new Error('Either team name or team ID must be provided in configuration');
     }
-    this.teamId = team.id;
   }
 
   /**
